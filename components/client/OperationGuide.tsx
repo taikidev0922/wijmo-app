@@ -47,7 +47,7 @@ export function OperationGuide() {
     },
     {
       title: "フィルター",
-      description: "",
+      description: "フィルターを適用してデータを絞り込みます。",
       shortcut: "alt+↓",
     },
   ];

@@ -8,7 +8,7 @@ import {
 import { OrderRepository } from "@/infrastructure/repository/orderRepository";
 import { Order } from "@/domains/order";
 import { useEffect, useState } from "react";
-import { CellType, FlexGrid as IFlexGrid } from "@mescius/wijmo.grid";
+import { FlexGrid as IFlexGrid } from "@mescius/wijmo.grid";
 import { CollectionView } from "@mescius/wijmo";
 import { FlexGridFilter } from "@mescius/wijmo.react.grid.filter";
 import { Button } from "@/components/ui/button";
@@ -18,13 +18,11 @@ export default function OrderListPage() {
   const orderAppService = new OrderAppService(new OrderRepository());
   const [grid, setGrid] = useState<IFlexGrid>();
   const [collectionView, setCollectionView] = useState<CollectionView<Order>>();
-  const [orders, setOrders] = useState<Order[]>([]);
   const router = useRouter();
 
   useEffect(() => {
     const fetchOrders = async () => {
       const orders = await orderAppService.getOrders();
-      setOrders(orders);
       initializeCollectionView(orders);
     };
     fetchOrders();

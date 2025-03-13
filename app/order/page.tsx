@@ -35,6 +35,7 @@ export default function Order() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [order, setOrder] = useState<OrderEntity | null>(null);
   const [clientAutoComplete, setClientAutoComplete] = useState<IAutoComplete>();
+  const [salesDate, setSalesDate] = useState<Date | null>(null);
   const selectedClientRef = useRef<Client | null>(null);
   const clietAppService = new ClientAppService(new ClientRepository());
   const productAppService = new ProductAppService(new ProductRepository());
@@ -215,7 +216,9 @@ export default function Order() {
     }
   }, [clientAutoComplete]);
 
-  const onSalesDateChange = (value: Date | null) => {};
+  const onSalesDateChange = (value: Date | null) => {
+    setSalesDate(value);
+  };
 
   const registerOrder = async () => {
     if (!selectedClient) {
@@ -243,7 +246,7 @@ export default function Order() {
       new OrderEntity(
         order?.id ?? undefined,
         orderNo,
-        new Date(),
+        salesDate ?? new Date(),
         selectedClient.id ?? "",
         selectedClient as Client,
         details ?? [],

@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Upload, ChevronLeft, ChevronRight, RefreshCcw } from "lucide-react";
 import { useDialog } from "@/contexts/DialogContext";
 import { useHotkeys } from "react-hotkeys-hook";
-import { Product } from "@/models/product";
+import { Product } from "@/domains/product";
 import { FlexGrid } from "@/components/FlexGrid";
 import { categorys } from "@/datas/categorys";
 import { ColumnType } from "@/types/column";

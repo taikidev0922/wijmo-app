@@ -15,7 +15,7 @@ import { businessTypeMap } from "@/datas/businessTypes";
 import { prefectureMap } from "@/datas/prefectures";
 import { useDialog } from "@/contexts/DialogContext";
 import { useHotkeys } from "react-hotkeys-hook";
-import { Client } from "@/models/client";
+import { Client } from "@/domains/client";
 import { FlexGrid } from "@/components/FlexGrid";
 import { ColumnType } from "@/types/column";
 import { OperationGuide } from "@/components/client/OperationGuide";

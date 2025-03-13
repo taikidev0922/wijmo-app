@@ -183,7 +183,7 @@ export class OrderRepository implements IOrderRepository {
           } catch (error) {
             // 各詳細の処理でエラーが発生した場合
             results.push({
-              uid: detail.uid,
+              uid: detail.uid ?? 0,
               error: convertErrorMessage(error as DexieError),
             });
           }
