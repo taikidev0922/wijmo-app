@@ -10,6 +10,12 @@ export default function AppBar() {
     await generateDummyData();
     window.location.reload();
   };
+
+  const handleClearDB = async () => {
+    await resetDatabase();
+    window.location.reload();
+  };
+
   return (
     <nav className="border-b border-gray-800 bg-gray-900">
       <div className="container mx-auto px-4">
@@ -26,29 +32,43 @@ export default function AppBar() {
             asChild
             className="text-gray-300 hover:text-white hover:bg-gray-800"
           >
-            <Link href="/client">得意先</Link>
+            <Link href="/client">得意先マスタ</Link>
           </Button>
           <Button
             variant="ghost"
             asChild
             className="text-gray-300 hover:text-white hover:bg-gray-800"
           >
-            <Link href="/product">商品</Link>
+            <Link href="/product">商品マスタ</Link>
           </Button>
           <Button
             variant="ghost"
             asChild
             className="text-gray-300 hover:text-white hover:bg-gray-800"
           >
-            <Link href="/order">受注</Link>
+            <Link href="/order">受注登録</Link>
           </Button>
-          <div className="flex-1" />
+          <Button
+            variant="ghost"
+            asChild
+            className="text-gray-300 hover:text-white hover:bg-gray-800"
+          >
+            <Link href="/order-list">受注一覧</Link>
+          </Button>
+          <div className="" />
           <Button
             variant="destructive"
             onClick={handleResetDB}
             className="bg-red-600 hover:bg-red-700"
           >
-            DBリセット
+            DBダミーデータ作成
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={handleClearDB}
+            className="bg-red-600 hover:bg-red-700"
+          >
+            DBを空にする
           </Button>
         </div>
       </div>

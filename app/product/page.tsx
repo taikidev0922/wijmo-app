@@ -4,105 +4,91 @@ import { useState, useEffect } from "react";
 import "@mescius/wijmo.styles/wijmo.css";
 import { FlexGrid as IFlexGrid } from "@mescius/wijmo.grid";
 import { CollectionView, deepClone, IGetError } from "@mescius/wijmo";
-import { InputMask } from "@mescius/wijmo.input";
 import "@mescius/wijmo.cultures/wijmo.culture.ja";
-import { ClientAppService } from "@/application/clientAppService";
-import { ClientRepository } from "@/infrastructure/repository/clientRepository";
+import { ProductAppService } from "@/application/productAppService";
+import { ProductRepository } from "@/infrastructure/repository/productRepository";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Upload, ChevronLeft, ChevronRight, RefreshCcw } from "lucide-react";
-import { businessTypeMap } from "@/datas/businessTypes";
-import { prefectureMap } from "@/datas/prefectures";
 import { useDialog } from "@/contexts/DialogContext";
 import { useHotkeys } from "react-hotkeys-hook";
-import { Client } from "@/models/client";
+import { Product } from "@/models/product";
 import { FlexGrid } from "@/components/FlexGrid";
+import { categorys } from "@/datas/categorys";
 import { ColumnType } from "@/types/column";
-import { OperationGuide } from "@/components/client/OperationGuide";
 
 export default function Page() {
-  const clientAppService = new ClientAppService(new ClientRepository());
+  const productAppService = new ProductAppService(new ProductRepository());
   const [grid, setGrid] = useState<IFlexGrid>();
   const [collectionView, setCollectionView] =
-    useState<CollectionView<Client>>();
+    useState<CollectionView<Product>>();
   const [isGuideOpen, setIsGuideOpen] = useState(true);
   const { showDialog } = useDialog();
-  const [originalClients, setOriginalClients] = useState<Client[]>([]);
+  const [originalProducts, setOriginalProducts] = useState<Product[]>([]);
 
-  useHotkeys("alt+r", () => fetchClients({ isConfirm: true }), {
+  useHotkeys("alt+r", () => fetchProducts({ isConfirm: true }), {
     enableOnFormTags: true,
     preventDefault: true,
   });
-  useHotkeys("alt+u", () => updateClients(), {
+  useHotkeys("alt+u", () => updateProducts(), {
     enableOnFormTags: true,
     preventDefault: true,
   });
 
   const columns: ColumnType[] = [
     {
+      binding: "code",
+      header: "商品コード",
+      dataType: "string",
+    },
+    {
       binding: "name",
-      header: "会社名",
+      header: "商品名",
       dataType: "string",
     },
     {
-      binding: "email",
-      header: "メールアドレス",
+      binding: "description",
+      header: "説明",
       dataType: "string",
     },
     {
-      binding: "phone",
-      header: "電話番号",
-      dataType: "string",
-      editor: new InputMask(document.createElement("div"), {
-        mask: "000-0000-0000",
-      }),
+      binding: "price",
+      header: "価格",
+      dataType: "number",
     },
     {
-      binding: "postalCode",
-      header: "郵便番号",
-      dataType: "string",
-      editor: new InputMask(document.createElement("div"), {
-        mask: "000-0000",
-      }),
-      width: 100,
+      binding: "quantity",
+      header: "在庫数",
+      dataType: "number",
     },
     {
-      binding: "prefecture",
-      header: "都道府県",
+      binding: "category",
+      header: "カテゴリー",
       dataType: "string",
-      dataMap: prefectureMap,
-    },
-    {
-      binding: "businessType",
-      header: "業種",
-      dataType: "string",
-      dataMap: businessTypeMap,
+      dataMap: categorys,
     },
   ];
 
-  const getError: IGetError<Client> = (item, prop) => {
-    // parsing errors (入力形式の検証)
+  const getError: IGetError<Product> = (item, prop) => {
     if (prop === "name" && !item.name) {
-      return "会社名を入力してください";
-    } else if (prop === "email" && !item.email) {
-      return "メールアドレスを入力してください";
-    } else if (
-      prop === "email" &&
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(item.email)
-    ) {
-      return "正しいメールアドレスの形式で入力してください";
-    } else if (prop === "businessType" && !item.businessType) {
-      return "業種を選択してください";
+      return "商品名を入力してください";
+    } else if (prop === "code" && !item.code) {
+      return "商品コードを入力してください";
+    } else if (prop === "price" && (!item.price || item.price < 0)) {
+      return "0以上の価格を入力してください";
+    } else if (prop === "quantity" && (!item.quantity || item.quantity < 0)) {
+      return "0以上の在庫数を入力してください";
+    } else if (prop === "category" && !item.category) {
+      return "カテゴリーを入力してください";
     }
     return null;
   };
 
-  // Fetch clients data
   useEffect(() => {
-    fetchClients();
+    fetchProducts();
   }, []);
 
-  const fetchClients = async (options?: {
+  const fetchProducts = async (options?: {
     isErrorAttach?: boolean;
     isConfirm?: boolean;
   }) => {
@@ -132,8 +118,8 @@ export default function Page() {
 
     const data = options?.isErrorAttach
       ? grid?.collectionView.items
-      : await clientAppService.getClients();
-    setOriginalClients(deepClone(data) ?? []);
+      : await productAppService.getProducts();
+    setOriginalProducts(deepClone(data) ?? []);
     const _collectionView = new CollectionView(data, {
       refreshOnEdit: false,
       trackChanges: true,
@@ -141,12 +127,13 @@ export default function Page() {
     });
     setCollectionView(_collectionView);
   };
-  const updateClients = async () => {
+
+  const updateProducts = async () => {
     if (!grid?.collectionView.items.some((item) => item.operation)) {
       toast.error("更新するデータがありません");
       return;
     }
-    fetchClients({ isErrorAttach: true });
+    fetchProducts({ isErrorAttach: true });
     await new Promise((resolve) => setTimeout(resolve, 100));
     if (grid?.hostElement.querySelector(".wj-state-invalid")) {
       toast.error("入力内容を確認してください");
@@ -155,14 +142,14 @@ export default function Page() {
     grid?.collectionView.items.forEach((item, index) => {
       item.uid = index;
     });
-    const updatedClients = grid?.collectionView.items
+    const updatedProducts = grid?.collectionView.items
       .filter((item) => item.operation)
       .map((item) => {
         return {
           ...item,
         };
-      }) as Client[];
-    const results = await clientAppService.bulkCreateUpdate(updatedClients);
+      }) as Product[];
+    const results = await productAppService.bulkCreateUpdate(updatedProducts);
     if (results.length > 0) {
       toast.error("更新に失敗しました");
       grid?.beginUpdate();
@@ -177,7 +164,7 @@ export default function Page() {
       grid?.endUpdate();
       return;
     }
-    await fetchClients();
+    await fetchProducts();
     toast.success("更新しました");
     grid?.select(0, 0);
   };
@@ -190,10 +177,10 @@ export default function Page() {
         }`}
       >
         <div className="mb-6 flex justify-between">
-          <h1 className="text-3xl font-bold tracking-tight">得意先マスタ</h1>
+          <h1 className="text-3xl font-bold tracking-tight">商品マスタ</h1>
           <div className="space-x-2">
             <Button
-              onClick={() => fetchClients({ isConfirm: true })}
+              onClick={() => fetchProducts({ isConfirm: true })}
               variant="default"
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
@@ -201,7 +188,7 @@ export default function Page() {
               再取得(alt+r)
             </Button>
             <Button
-              onClick={() => updateClients()}
+              onClick={() => updateProducts()}
               variant="default"
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
@@ -210,11 +197,11 @@ export default function Page() {
             </Button>
           </div>
         </div>
-        <FlexGrid<Client>
-          gridKey="得意先マスタ"
+        <FlexGrid<Product>
+          gridKey="商品マスタ"
           columns={columns}
           collectionView={collectionView}
-          originalItems={originalClients}
+          originalItems={originalProducts}
           grid={grid}
           setGrid={setGrid}
         />
@@ -237,15 +224,9 @@ export default function Page() {
             <ChevronLeft className="h-5 w-5" />
           )}
         </button>
-        <div
-          className={`h-full flex flex-col ${isGuideOpen ? "block" : "hidden"}`}
-        >
-          <h2 className="text-xl font-bold p-4 ml-4">操作ガイド</h2>
-          <div className="flex-1 overflow-y-auto">
-            <div className="p-4">
-              <OperationGuide />
-            </div>
-          </div>
+        <div className={`p-4 ${isGuideOpen ? "block" : "hidden"}`}>
+          <h2 className="text-xl font-bold mb-4 ml-4">操作ガイド</h2>
+          {/* ここに操作ガイドの内容を追加 */}
         </div>
       </div>
     </div>

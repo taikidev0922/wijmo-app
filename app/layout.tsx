@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import { DialogProvider } from "@/contexts/DialogContext";
 import AppBar from "@/components/AppBar";
+import "@mescius/wijmo.styles/wijmo.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

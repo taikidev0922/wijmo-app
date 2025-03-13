@@ -1,5 +1,5 @@
 "use client";
-import { ColumnType } from "@/types/column";
+import { ColumnType, DataTypeMap } from "@/types/column";
 import { FlexGrid as FlexGridBase } from "@mescius/wijmo.react.grid";
 import {
   Column,
@@ -11,7 +11,7 @@ import {
 import { Button } from "./ui/button";
 import { FlexGridFilter } from "@mescius/wijmo.react.grid.filter";
 import { Copy, FileX, PlusCircle, Save, Trash2, X } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { FlexGridXlsxConverter } from "@mescius/wijmo.grid.xlsx";
 import { Operation } from "@/enums/Operation";
 import { CollectionView, Control } from "@mescius/wijmo";
@@ -23,6 +23,7 @@ import { CellMaker } from "@mescius/wijmo.grid.cellmaker";
 import { useDialog } from "@/contexts/DialogContext";
 
 interface FlexGridProps<T> {
+  gridKey: string;
   columns: ColumnType[];
   collectionView: CollectionView<T> | undefined;
   originalItems: Partial<T & { id: string }>[];
@@ -36,6 +37,7 @@ export function FlexGrid<T>({
   originalItems,
   grid,
   setGrid,
+  gridKey,
 }: FlexGridProps<T>) {
   const { showDialog } = useDialog();
   useHotkeys("alt+;", () => addRow(), {
@@ -63,8 +65,16 @@ export function FlexGrid<T>({
     preventDefault: true,
   });
 
+  const [wjColumns, setWjColumns] = useState<Column[]>([]);
+
   useEffect(() => {
     if (!grid) return;
+    setWjColumns(
+      columns.map((column) => ({
+        ...column,
+        dataType: DataTypeMap(column.dataType),
+      })) as unknown as Column[]
+    );
     grid.rowHeaders.columns.removeAt(0);
     grid?.rowHeaders.columns.insert(
       0,
@@ -135,6 +145,7 @@ export function FlexGrid<T>({
       grid.endUpdate();
     });
     grid.loadedRows.addHandler(() => {
+      if (!grid.collectionView) return;
       loadLayout();
     });
     grid.refreshOnEdit = false;
@@ -142,7 +153,17 @@ export function FlexGrid<T>({
   }, [grid]);
 
   const addRow = async () => {
-    grid?.editableCollectionView.addNew();
+    const currentItem = grid?.collectionView.currentItem;
+    const newItem: Record<string, T> = {};
+    if (currentItem) {
+      Object.keys(currentItem).forEach((key) => {
+        if (currentItem[key] && typeof currentItem[key] === "object") {
+          newItem[key] = { ...currentItem[key] };
+        }
+      });
+    }
+    const collectionView = grid?.collectionView as CollectionView;
+    collectionView.addNew(newItem as T);
     await new Promise((resolve) => setTimeout(resolve, 10));
     grid?.scrollIntoView(grid.collectionView.items.length - 1, 0);
     grid?.focus();
@@ -152,13 +173,28 @@ export function FlexGrid<T>({
     const currentItem = grid?.collectionView.currentItem;
     if (currentItem) {
       const collectionView = grid?.collectionView as CollectionView;
-      collectionView.addNew({
-        ...currentItem,
-        id: undefined,
-        name: null,
-        operation: Operation.Insert,
-        error: null,
+      const newItem = { ...currentItem };
+      newItem.id = undefined;
+      newItem.name = null;
+      newItem.operation = Operation.Insert;
+      newItem.error = null;
+      Object.keys(currentItem).forEach((key) => {
+        if (currentItem[key] && typeof currentItem[key] === "object") {
+          newItem[key] = { ...currentItem[key] };
+        }
       });
+
+      // Remove calculated fields
+      if (collectionView.calculatedFields) {
+        const calculatedFields = Object.keys(
+          collectionView.calculatedFields
+        ) as string[];
+        calculatedFields.forEach((field: string) => {
+          delete newItem[field];
+        });
+      }
+
+      collectionView.addNew(newItem);
     }
     await new Promise((resolve) => setTimeout(resolve, 10));
     grid?.scrollIntoView(grid.collectionView.items.length - 1, 0);
@@ -225,15 +261,15 @@ export function FlexGrid<T>({
 
   const saveLayout = () => {
     if (grid?.columnLayout) {
-      localStorage.setItem("myLayout", grid.columnLayout);
+      localStorage.setItem(`${gridKey}Layout`, grid.columnLayout);
       toast.success("レイアウトを保存しました");
     }
   };
 
   const loadLayout = async () => {
-    if (localStorage.getItem("myLayout") && grid) {
+    if (localStorage.getItem(`${gridKey}Layout`) && grid) {
       await new Promise((resolve) => setTimeout(resolve, 100));
-      grid.columnLayout = localStorage.getItem("myLayout") ?? "";
+      grid.columnLayout = localStorage.getItem(`${gridKey}Layout`) ?? "";
       columns.forEach((column) => {
         const gridColumn = grid.columns.find(
           (c) => c.binding === column.binding
@@ -244,7 +280,10 @@ export function FlexGrid<T>({
             string,
             string
           >;
-          gridColumn.editor = column.editor as Control;
+          console.log(column.binding);
+          if (column.editor) {
+            gridColumn.editor = column.editor as Control;
+          }
         }
       });
     }
@@ -258,7 +297,7 @@ export function FlexGrid<T>({
           includeColumnHeaders: true,
           includeStyles: false,
         },
-        "得意先マスタ.xlsx"
+        `${gridKey}.xlsx`
       );
     }
   };
@@ -295,7 +334,7 @@ export function FlexGrid<T>({
       </div>
       <FlexGridBase
         itemsSource={collectionView}
-        columns={columns}
+        columns={wjColumns}
         autoGenerateColumns={false}
         validateEdits={false}
         imeEnabled={true}

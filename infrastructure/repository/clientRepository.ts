@@ -1,5 +1,5 @@
 import { IClientRepository } from "@/application/interfaces/IClientRepository";
-import { Client } from "@/domain/client";
+import { Client } from "@/domains/client";
 import { db } from "../db";
 import { Operation } from "@/enums/Operation";
 import { IResults } from "@/application/interfaces/IResults";
@@ -8,19 +8,33 @@ import { convertErrorMessage } from "@/utils/convertErrorMessage";
 export class ClientRepository implements IClientRepository {
   async findAll(): Promise<Client[]> {
     const clients = await db.clients.toArray();
-    return clients;
+    return clients.map((client) =>
+      Client.create(
+        new Client(
+          client.id,
+          undefined,
+          undefined,
+          client.name ?? "",
+          client.email ?? "",
+          client.phone ?? "",
+          client.postalCode ?? "",
+          client.prefecture ?? "",
+          client.businessType ?? "",
+          client.createdAt ?? new Date(),
+          client.updatedAt ?? new Date()
+        )
+      )
+    );
   }
 
-  async bulkCreateUpdate(
-    clients: Partial<Client & { operation: Operation; uid: number }>[]
-  ): Promise<IResults[]> {
+  async bulkCreateUpdate(clients: Client[]): Promise<IResults[]> {
     const results: IResults[] = [];
     try {
       await db.transaction("rw", db.clients, async () => {
         for (const client of clients) {
           if (client.operation === Operation.Insert) {
             try {
-              await db.clients.add(Client.create(client as Client));
+              await db.clients.add(Client.create(client as Client).toModel());
             } catch (error) {
               results.push({
                 uid: client.uid ?? 0,
@@ -29,7 +43,7 @@ export class ClientRepository implements IClientRepository {
             }
           } else if (client.operation === Operation.Update) {
             try {
-              await db.clients.put(Client.create(client as Client));
+              await db.clients.put(Client.create(client as Client).toModel());
             } catch (error) {
               results.push({
                 uid: client.uid ?? 0,

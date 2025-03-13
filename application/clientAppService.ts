@@ -1,5 +1,5 @@
 import { IClientRepository } from "./interfaces/IClientRepository";
-import { Client } from "@/domain/client";
+import { Client } from "@/domains/client";
 
 export class ClientAppService {
   constructor(private readonly clientRepository: IClientRepository) {}

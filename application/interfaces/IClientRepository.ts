@@ -1,4 +1,4 @@
-import { Client } from "@/domain/client";
+import { Client } from "@/domains/client";
 import { IResults } from "./IResults";
 
 export interface IClientRepository {

@@ -1,6 +1,6 @@
 export class Client {
   constructor(
-    public readonly id: string,
+    public readonly id: string | undefined,
     public readonly name: string,
     public readonly email: string,
     public readonly phone: string,
