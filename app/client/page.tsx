@@ -5,7 +5,6 @@ import "@mescius/wijmo.styles/wijmo.css";
 import { FlexGrid as IFlexGrid } from "@mescius/wijmo.grid";
 import { CollectionView, deepClone, IGetError } from "@mescius/wijmo";
 import { InputMask } from "@mescius/wijmo.input";
-import "@mescius/wijmo.cultures/wijmo.culture.ja";
 import { ClientAppService } from "@/application/clientAppService";
 import { ClientRepository } from "@/infrastructure/repository/clientRepository";
 import toast from "react-hot-toast";
@@ -28,17 +27,7 @@ export default function Page() {
   const [isGuideOpen, setIsGuideOpen] = useState(true);
   const { showDialog } = useDialog();
   const [originalClients, setOriginalClients] = useState<Client[]>([]);
-
-  useHotkeys("alt+r", () => fetchClients({ isConfirm: true }), {
-    enableOnFormTags: true,
-    preventDefault: true,
-  });
-  useHotkeys("alt+u", () => updateClients(), {
-    enableOnFormTags: true,
-    preventDefault: true,
-  });
-
-  const columns: ColumnType[] = [
+  const [columns, setColumns] = useState<ColumnType[]>([
     {
       binding: "name",
       header: "会社名",
@@ -53,17 +42,12 @@ export default function Page() {
       binding: "phone",
       header: "電話番号",
       dataType: "string",
-      editor: new InputMask(document.createElement("div"), {
-        mask: "000-0000-0000",
-      }),
+      width: 120,
     },
     {
       binding: "postalCode",
       header: "郵便番号",
       dataType: "string",
-      editor: new InputMask(document.createElement("div"), {
-        mask: "000-0000",
-      }),
       width: 100,
     },
     {
@@ -78,7 +62,40 @@ export default function Page() {
       dataType: "string",
       dataMap: businessTypeMap,
     },
-  ];
+  ]);
+
+  useHotkeys("alt+r", () => fetchClients({ isConfirm: true }), {
+    enableOnFormTags: true,
+    preventDefault: true,
+  });
+  useHotkeys("alt+u", () => updateClients(), {
+    enableOnFormTags: true,
+    preventDefault: true,
+  });
+
+  useEffect(() => {
+    // InputMaskエディターをクライアントサイドで初期化
+    const updatedColumns = columns.map((column) => {
+      if (column.binding === "phone") {
+        return {
+          ...column,
+          editor: new InputMask(document.createElement("div"), {
+            mask: "000-0000-0000",
+          }),
+        };
+      }
+      if (column.binding === "postalCode") {
+        return {
+          ...column,
+          editor: new InputMask(document.createElement("div"), {
+            mask: "000-0000",
+          }),
+        };
+      }
+      return column;
+    });
+    setColumns(updatedColumns);
+  }, []);
 
   const getError: IGetError<Client> = (item, prop) => {
     // parsing errors (入力形式の検証)

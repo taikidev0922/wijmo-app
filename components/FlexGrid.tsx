@@ -75,81 +75,108 @@ export function FlexGrid<T>({
         dataType: DataTypeMap(column.dataType),
       })) as unknown as Column[]
     );
-    grid.rowHeaders.columns.removeAt(0);
-    grid?.rowHeaders.columns.insert(
-      0,
-      new Column({
-        header: " ",
-        binding: " ",
-        width: 55,
-        allowResizing: false,
-        cellTemplate: (ctx: ICellTemplateContext) => {
-          return ctx.row.index + 1;
-        },
-      })
-    );
-    grid?.rowHeaders.columns.insert(
-      1,
-      new Column({
-        header: " ",
-        binding: "operation",
-        width: 40,
-        allowResizing: false,
-        cellTemplate: (ctx: ICellTemplateContext) => {
-          if (ctx.value === Operation.Delete) {
-            return `<div class="bg-red-500 text-white rounded-md text-center">D</div>`;
-          }
-          if (ctx.value === Operation.Update) {
-            return `<div class="bg-green-500 text-white rounded-md text-center">U</div>`;
-          }
-          if (ctx.value === Operation.Insert) {
-            return `<div class="bg-blue-500 text-white rounded-md text-center">I</div>`;
-          }
-        },
-      })
-    );
-    grid?.rowHeaders.columns.insert(
-      2,
-      new Column({
-        header: " ",
-        binding: "error",
-        width: 40,
-        allowResizing: false,
-        cellTemplate: (ctx: ICellTemplateContext, cell: HTMLElement) => {
-          if (!ctx.value) return " ";
-          const icon = renderToString(<AlertCircle className="error-icon" />);
-          return CellMaker.makeButton({
-            text: ctx.value ? icon : " ",
-            click(e, ctx) {
-              if (ctx.value) {
-                showDialog({
-                  title: "エラー",
-                  description: ctx.value,
-                  confirmText: "OK",
-                  showCancelButton: false,
-                });
-              }
-            },
-          })(ctx, cell);
-        },
-      })
-    );
 
-    grid.cellEditEnded.addHandler(() => {
-      grid.beginUpdate();
-      if (grid.collectionView.currentItem.id) {
-        grid.collectionView.currentItem.operation = Operation.Update;
-      } else {
-        grid.collectionView.currentItem.operation = Operation.Insert;
-      }
-      grid.endUpdate();
-    });
-    grid.loadedRows.addHandler(() => {
-      if (!grid.collectionView) return;
-      loadLayout();
-    });
-    grid.refreshOnEdit = false;
-    grid.keyActionTab = KeyAction.CycleEditable;
+    const initializeGrid = () => {
+      if (!grid) return;
+      grid.rowHeaders.columns.removeAt(0);
+      grid?.rowHeaders.columns.insert(
+        0,
+        new Column({
+          header: " ",
+          binding: " ",
+          width: 55,
+          allowResizing: false,
+          cellTemplate: (ctx: ICellTemplateContext) => {
+            return ctx.row.index + 1;
+          },
+        })
+      );
+      grid?.rowHeaders.columns.insert(
+        1,
+        new Column({
+          header: " ",
+          binding: "operation",
+          width: 40,
+          allowResizing: false,
+          cellTemplate: (ctx: ICellTemplateContext) => {
+            if (ctx.value === Operation.Delete) {
+              return `<div class="bg-red-500 text-white rounded-md text-center">D</div>`;
+            }
+            if (ctx.value === Operation.Update) {
+              return `<div class="bg-green-500 text-white rounded-md text-center">U</div>`;
+            }
+            if (ctx.value === Operation.Insert) {
+              return `<div class="bg-blue-500 text-white rounded-md text-center">I</div>`;
+            }
+          },
+        })
+      );
+      grid?.rowHeaders.columns.insert(
+        2,
+        new Column({
+          header: " ",
+          binding: "error",
+          width: 40,
+          allowResizing: false,
+          cellTemplate: (ctx: ICellTemplateContext, cell: HTMLElement) => {
+            if (!ctx.value) return " ";
+            const icon = renderToString(<AlertCircle className="error-icon" />);
+            return CellMaker.makeButton({
+              text: ctx.value ? icon : " ",
+              click(e, ctx) {
+                if (ctx.value) {
+                  showDialog({
+                    title: "エラー",
+                    description: ctx.value,
+                    confirmText: "OK",
+                    showCancelButton: false,
+                  });
+                }
+              },
+            })(ctx, cell);
+          },
+        })
+      );
+
+      grid.cellEditEnded.addHandler(() => {
+        grid.beginUpdate();
+        if (grid.collectionView.currentItem.id) {
+          grid.collectionView.currentItem.operation = Operation.Update;
+        } else {
+          grid.collectionView.currentItem.operation = Operation.Insert;
+        }
+        grid.endUpdate();
+      });
+      grid.loadedRows.addHandler(() => {
+        if (!grid.collectionView) return;
+        const loadLayout = async () => {
+          if (localStorage.getItem(`${gridKey}Layout`) && grid) {
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            grid.columnLayout = localStorage.getItem(`${gridKey}Layout`) ?? "";
+            columns.forEach((column) => {
+              const gridColumn = grid.columns.find(
+                (c) => c.binding === column.binding
+              );
+              if (gridColumn) {
+                gridColumn.dataMap = column.dataMap as unknown as DataMap<
+                  string,
+                  string,
+                  string
+                >;
+                if (column.editor) {
+                  gridColumn.editor = column.editor as Control;
+                }
+              }
+            });
+          }
+        };
+        loadLayout();
+      });
+      grid.refreshOnEdit = false;
+      grid.keyActionTab = KeyAction.CycleEditable;
+    };
+
+    initializeGrid();
   }, [grid]);
 
   const addRow = async () => {
@@ -263,29 +290,6 @@ export function FlexGrid<T>({
     if (grid?.columnLayout) {
       localStorage.setItem(`${gridKey}Layout`, grid.columnLayout);
       toast.success("レイアウトを保存しました");
-    }
-  };
-
-  const loadLayout = async () => {
-    if (localStorage.getItem(`${gridKey}Layout`) && grid) {
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      grid.columnLayout = localStorage.getItem(`${gridKey}Layout`) ?? "";
-      columns.forEach((column) => {
-        const gridColumn = grid.columns.find(
-          (c) => c.binding === column.binding
-        );
-        if (gridColumn) {
-          gridColumn.dataMap = column.dataMap as unknown as DataMap<
-            string,
-            string,
-            string
-          >;
-          console.log(column.binding);
-          if (column.editor) {
-            gridColumn.editor = column.editor as Control;
-          }
-        }
-      });
     }
   };
 

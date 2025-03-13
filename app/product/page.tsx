@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import "@mescius/wijmo.styles/wijmo.css";
 import { FlexGrid as IFlexGrid } from "@mescius/wijmo.grid";
 import { CollectionView, deepClone, IGetError } from "@mescius/wijmo";
-import "@mescius/wijmo.cultures/wijmo.culture.ja";
 import { ProductAppService } from "@/application/productAppService";
 import { ProductRepository } from "@/infrastructure/repository/productRepository";
 import toast from "react-hot-toast";

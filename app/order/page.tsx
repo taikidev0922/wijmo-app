@@ -29,9 +29,59 @@ import { Operation } from "@/enums/Operation";
 import { useDialog } from "@/contexts/DialogContext";
 export default function Order() {
   const { showDialog } = useDialog();
-  const [columns, setColumns] = useState<ColumnType[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [columns, setColumns] = useState<ColumnType[]>([
+    {
+      header: "商品コード",
+      binding: "product.code",
+      dataType: "string",
+    },
+    {
+      header: "商品名",
+      binding: "product.name",
+      dataType: "string",
+      isReadOnly: true,
+    },
+    {
+      header: "単価(円)",
+      binding: "product.price",
+      dataType: "number",
+      isReadOnly: true,
+    },
+    {
+      header: "数量",
+      binding: "quantity",
+      dataType: "number",
+    },
+    {
+      header: "小計(円)",
+      binding: "subtotal",
+      dataType: "number",
+      isReadOnly: true,
+      aggregate: Aggregate.Sum,
+    },
+  ]);
+
+  useEffect(() => {
+    if (products.length > 0) {
+      const updatedColumns = columns.map((column) => {
+        if (column.binding === "product.code") {
+          return {
+            ...column,
+            editor: new IAutoComplete(document.createElement("div"), {
+              itemsSource: products,
+              displayMemberPath: "code",
+              placeholder: "F4で検索",
+            }),
+          };
+        }
+        return column;
+      });
+      setColumns(updatedColumns);
+    }
+  }, []);
+
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [order, setOrder] = useState<OrderEntity | null>(null);
   const [clientAutoComplete, setClientAutoComplete] = useState<IAutoComplete>();
@@ -98,42 +148,6 @@ export default function Order() {
     ]);
     const products = await productAppService.getProducts();
     setProducts(products);
-    setColumns([
-      {
-        header: "商品コード",
-        binding: "product.code",
-        dataType: "string",
-        editor: new IAutoComplete(document.createElement("div"), {
-          itemsSource: products,
-          displayMemberPath: "code",
-          placeholder: "F4で検索",
-        }),
-      },
-      {
-        header: "商品名",
-        binding: "product.name",
-        dataType: "string",
-        isReadOnly: true,
-      },
-      {
-        header: "単価(円)",
-        binding: "product.price",
-        dataType: "number",
-        isReadOnly: true,
-      },
-      {
-        header: "数量",
-        binding: "quantity",
-        dataType: "number",
-      },
-      {
-        header: "小計(円)",
-        binding: "subtotal",
-        dataType: "number",
-        isReadOnly: true,
-        aggregate: Aggregate.Sum,
-      },
-    ]);
     await new Promise((resolve) => setTimeout(resolve, 100));
   };
 
@@ -214,7 +228,7 @@ export default function Order() {
       selectedClientRef.current = null;
       setSelectedClient(null);
     }
-  }, [clientAutoComplete]);
+  }, []);
 
   const onSalesDateChange = (value: Date | null) => {
     setSalesDate(value);
