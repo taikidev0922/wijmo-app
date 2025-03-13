@@ -31,56 +31,50 @@ export default function Order() {
   const { showDialog } = useDialog();
   const [clients, setClients] = useState<Client[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [columns, setColumns] = useState<ColumnType[]>([
-    {
-      header: "商品コード",
-      binding: "product.code",
-      dataType: "string",
-    },
-    {
-      header: "商品名",
-      binding: "product.name",
-      dataType: "string",
-      isReadOnly: true,
-    },
-    {
-      header: "単価(円)",
-      binding: "product.price",
-      dataType: "number",
-      isReadOnly: true,
-    },
-    {
-      header: "数量",
-      binding: "quantity",
-      dataType: "number",
-    },
-    {
-      header: "小計(円)",
-      binding: "subtotal",
-      dataType: "number",
-      isReadOnly: true,
-      aggregate: Aggregate.Sum,
-    },
-  ]);
+  const [columns, setColumns] = useState<ColumnType[]>();
 
   useEffect(() => {
-    if (products.length > 0) {
-      const updatedColumns = columns.map((column) => {
-        if (column.binding === "product.code") {
-          return {
-            ...column,
-            editor: new IAutoComplete(document.createElement("div"), {
-              itemsSource: products,
-              displayMemberPath: "code",
-              placeholder: "F4で検索",
-            }),
-          };
-        }
-        return column;
-      });
-      setColumns(updatedColumns);
+    if (!products || products.length === 0) {
+      return;
     }
-  }, []);
+    const updatedColumns = [
+      {
+        header: "商品コード",
+        binding: "product.code",
+        dataType: "string",
+        editor: new IAutoComplete(document.createElement("div"), {
+          itemsSource: products,
+          displayMemberPath: "code",
+          placeholder: "F4で検索",
+        }),
+      },
+      {
+        header: "商品名",
+        binding: "product.name",
+        dataType: "string",
+        isReadOnly: true,
+      },
+      {
+        header: "単価(円)",
+        binding: "product.price",
+        dataType: "number",
+        isReadOnly: true,
+      },
+      {
+        header: "数量",
+        binding: "quantity",
+        dataType: "number",
+      },
+      {
+        header: "小計(円)",
+        binding: "subtotal",
+        dataType: "number",
+        isReadOnly: true,
+        aggregate: Aggregate.Sum,
+      },
+    ];
+    setColumns(updatedColumns as ColumnType[]);
+  }, [products]);
 
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [order, setOrder] = useState<OrderEntity | null>(null);
@@ -384,7 +378,7 @@ export default function Order() {
       </div>
       <div className="flex flex-row gap-4 border pt-4">
         <div>明細</div>
-        {columns.length > 0 && (
+        {columns && columns.length > 0 && (
           <FlexGrid<OrderDetail>
             gridKey="受注明細"
             columns={columns}

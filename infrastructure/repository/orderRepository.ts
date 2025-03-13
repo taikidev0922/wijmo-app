@@ -85,10 +85,8 @@ export class OrderRepository implements IOrderRepository {
 
   private async generateOrderNo(): Promise<string> {
     const orders = await db.orders.toArray();
-    console.log("Existing orders:", orders);
 
     if (orders.length === 0) {
-      console.log("No existing orders, returning initial order number: 000001");
       return "000001";
     }
 
@@ -98,20 +96,15 @@ export class OrderRepository implements IOrderRepository {
       .map((orderNo) => parseInt(orderNo, 10))
       .filter((num) => !isNaN(num));
 
-    console.log("Extracted valid order numbers:", orderNumbers);
-
     // If no valid numbers found, start from 1
     if (orderNumbers.length === 0) {
-      console.log("No valid order numbers found, returning: 000001");
       return "000001";
     }
 
     const maxOrderNo = Math.max(...orderNumbers);
-    console.log("Maximum order number:", maxOrderNo);
 
     // Generate next order number (6 digits)
     const nextOrderNo = (maxOrderNo + 1).toString().padStart(6, "0");
-    console.log("Generated next order number:", nextOrderNo);
 
     return nextOrderNo;
   }
