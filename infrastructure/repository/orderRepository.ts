@@ -7,6 +7,7 @@ import { OrderDetail } from "@/domains/orderDetail";
 import { Client } from "@/domains/client";
 import { convertErrorMessage } from "@/utils/convertErrorMessage";
 import { DexieError } from "dexie";
+import { Product } from "@/domains/product";
 
 export class OrderRepository implements IOrderRepository {
   async findAll(): Promise<Order[]> {
@@ -18,7 +19,6 @@ export class OrderRepository implements IOrderRepository {
         .equals(order.id ?? "")
         .toArray();
 
-      // Get product for each order detail
       const detailPromises = orderDetails.map(async (detail) => {
         const product = await db.products.get(detail.productId);
         return OrderDetail.create({
@@ -32,6 +32,8 @@ export class OrderRepository implements IOrderRepository {
       return Order.create(
         new Order(
           order.id,
+          undefined,
+          undefined,
           order.orderNo,
           order.orderDate,
           order.clientId,
@@ -51,14 +53,12 @@ export class OrderRepository implements IOrderRepository {
 
     if (!order) return null;
 
-    // 関連データを取得
     const client = await db.clients.get(order.clientId);
     const orderDetails = await db.orderDetails
       .where("orderId")
       .equals(order.id ?? "")
       .toArray();
 
-    // Get product for each order detail
     const detailPromises = orderDetails.map(async (detail) => {
       const product = await db.products.get(detail.productId);
       return OrderDetail.create({
@@ -72,6 +72,8 @@ export class OrderRepository implements IOrderRepository {
     return Order.create(
       new Order(
         order.id,
+        undefined,
+        undefined,
         order.orderNo,
         order.orderDate,
         order.clientId,
@@ -96,14 +98,12 @@ export class OrderRepository implements IOrderRepository {
       .map((orderNo) => parseInt(orderNo, 10))
       .filter((num) => !isNaN(num));
 
-    // If no valid numbers found, start from 1
     if (orderNumbers.length === 0) {
       return "000001";
     }
 
     const maxOrderNo = Math.max(...orderNumbers);
 
-    // Generate next order number (6 digits)
     const nextOrderNo = (maxOrderNo + 1).toString().padStart(6, "0");
 
     return nextOrderNo;
@@ -113,81 +113,220 @@ export class OrderRepository implements IOrderRepository {
     const results: IResults[] = [];
 
     try {
-      await db.transaction("rw", [db.orders, db.orderDetails], async () => {
-        // 注文データ処理
-        let orderId: string;
-        if (order.id) {
-          // 既存の注文を更新
-          await db.orders.update(order.id, {
-            orderNo: order.orderNo,
-            orderDate: order.orderDate,
-            clientId: order.clientId,
-            updatedAt: new Date(),
-          });
-          orderId = order.id;
-        } else {
-          // 新規注文を作成
-          const orderNo = await this.generateOrderNo();
-          const newOrder = Order.create({
-            id: undefined,
-            orderNo: orderNo,
-            orderDate: order.orderDate,
-            clientId: order.clientId,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          } as Order);
+      await db.transaction(
+        "rw",
+        [db.orders, db.orderDetails, db.products],
+        async () => {
+          const inventoryChanges = new Map<string, number>();
 
-          orderId = (await db.orders.add(newOrder.toModel())) as string;
-        }
+          for (const detail of order.orderDetails) {
+            const product = await db.products.get(detail.productId);
+            if (!product) {
+              results.push({
+                uid: detail.uid ?? 0,
+                error: "Product not found",
+              });
+              throw new Error("Product not found");
+            }
 
-        // 注文詳細の処理
-        for (const detail of order.orderDetails) {
-          try {
+            const currentInventory =
+              product.quantity - (inventoryChanges.get(product.id ?? "") ?? 0);
+
             switch (detail.operation) {
               case Operation.Insert:
-                // 新規詳細を作成
-                const newDetail = OrderDetail.create({
-                  id: crypto.randomUUID(),
-                  orderId: orderId,
-                  productId: detail.productId,
-                  quantity: detail.quantity,
-                } as OrderDetail);
-
-                await db.orderDetails.add(newDetail.toModel());
+                if (currentInventory < detail.quantity) {
+                  results.push({
+                    uid: detail.uid ?? 0,
+                    error: `商品${product.code}の在庫が不足しています。在庫数: ${currentInventory}、注文数: ${detail.quantity}`,
+                  });
+                  throw new Error("Insufficient inventory");
+                }
+                inventoryChanges.set(
+                  product.id ?? "",
+                  (inventoryChanges.get(product.id ?? "") ?? 0) +
+                    detail.quantity
+                );
                 break;
 
               case Operation.Update:
-                // 既存詳細を更新
                 if (detail.id) {
-                  await db.orderDetails.update(detail.id, {
-                    productId: detail.productId,
-                    quantity: detail.quantity,
-                  });
+                  const existingDetail = await db.orderDetails.get(detail.id);
+                  if (!existingDetail) {
+                    results.push({
+                      uid: detail.uid ?? 0,
+                      error: "Order detail not found",
+                    });
+                    throw new Error("Order detail not found");
+                  }
+
+                  const quantityDiff =
+                    detail.quantity - (existingDetail.quantity ?? 0);
+                  if (currentInventory < quantityDiff) {
+                    results.push({
+                      uid: detail.uid ?? 0,
+                      error: `商品${product.code}の在庫が不足しています。在庫数: ${currentInventory}, 追加必要数: ${quantityDiff}`,
+                    });
+                    throw new Error("Insufficient inventory");
+                  }
+                  if (quantityDiff !== 0) {
+                    inventoryChanges.set(
+                      product.id ?? "",
+                      (inventoryChanges.get(product.id ?? "") ?? 0) +
+                        quantityDiff
+                    );
+                  }
                 }
                 break;
 
               case Operation.Delete:
-                // 詳細を削除
                 if (detail.id) {
-                  await db.orderDetails.delete(detail.id);
+                  const deletingDetail = await db.orderDetails.get(detail.id);
+                  if (deletingDetail) {
+                    inventoryChanges.set(
+                      product.id ?? "",
+                      (inventoryChanges.get(product.id ?? "") ?? 0) -
+                        (deletingDetail.quantity ?? 0)
+                    );
+                  }
                 }
                 break;
             }
-          } catch (error) {
-            // 各詳細の処理でエラーが発生した場合
-            results.push({
-              uid: detail.uid ?? 0,
-              error: convertErrorMessage(error as DexieError),
+          }
+
+          let orderId: string;
+          if (order.id) {
+            await db.orders.update(order.id, {
+              orderNo: order.orderNo,
+              orderDate: order.orderDate,
+              clientId: order.clientId,
+              updatedAt: new Date(),
             });
+            orderId = order.id;
+          } else {
+            const orderNo = await this.generateOrderNo();
+            const newOrder = Order.create({
+              id: undefined,
+              orderNo: orderNo,
+              orderDate: order.orderDate,
+              clientId: order.clientId,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            } as Order);
+
+            orderId = (await db.orders.add(newOrder.toModel())) as string;
+          }
+
+          for (const detail of order.orderDetails) {
+            try {
+              const product = await db.products.get(detail.productId);
+              if (!product) continue;
+
+              switch (detail.operation) {
+                case Operation.Insert:
+                  const newDetail = OrderDetail.create({
+                    id: crypto.randomUUID(),
+                    orderId: orderId,
+                    productId: detail.productId,
+                    quantity: detail.quantity,
+                  } as OrderDetail);
+
+                  const updatedProduct = Product.create(
+                    new Product(
+                      product.id,
+                      undefined,
+                      undefined,
+                      product.code,
+                      product.name,
+                      product.description,
+                      product.price,
+                      product.quantity - detail.quantity,
+                      product.category,
+                      product.createdAt,
+                      product.updatedAt
+                    )
+                  );
+                  await db.products.update(
+                    detail.productId,
+                    updatedProduct.toModel()
+                  );
+                  await db.orderDetails.add(newDetail.toModel());
+                  break;
+
+                case Operation.Update:
+                  if (detail.id) {
+                    const existingDetail = await db.orderDetails.get(detail.id);
+                    if (!existingDetail) continue;
+
+                    const quantityDiff =
+                      detail.quantity - (existingDetail.quantity ?? 0);
+                    const updatedProductForUpdate = Product.create(
+                      new Product(
+                        product.id,
+                        undefined,
+                        undefined,
+                        product.code,
+                        product.name,
+                        product.description,
+                        product.price,
+                        product.quantity - quantityDiff,
+                        product.category,
+                        product.createdAt,
+                        product.updatedAt
+                      )
+                    );
+                    await db.products.update(
+                      detail.productId,
+                      updatedProductForUpdate.toModel()
+                    );
+                    await db.orderDetails.update(detail.id, {
+                      productId: detail.productId,
+                      quantity: detail.quantity,
+                    });
+                  }
+                  break;
+
+                case Operation.Delete:
+                  if (detail.id) {
+                    const deletingDetail = await db.orderDetails.get(detail.id);
+                    if (deletingDetail) {
+                      const updatedProductForDelete = Product.create(
+                        new Product(
+                          product.id,
+                          undefined,
+                          undefined,
+                          product.code,
+                          product.name,
+                          product.description,
+                          product.price,
+                          product.quantity + (deletingDetail.quantity ?? 0),
+                          product.category,
+                          product.createdAt,
+                          product.updatedAt
+                        )
+                      );
+                      await db.products.update(
+                        detail.productId,
+                        updatedProductForDelete.toModel()
+                      );
+                    }
+                    await db.orderDetails.delete(detail.id);
+                  }
+                  break;
+              }
+            } catch (error) {
+              results.push({
+                uid: detail.uid ?? 0,
+                error: convertErrorMessage(error as DexieError),
+              });
+              throw error;
+            }
           }
         }
-      });
+      );
 
       return results;
-    } catch (error) {
-      // 注文処理で例外が発生した場合はそのままスロー
-      console.error("注文の作成/更新中にエラーが発生しました:", error);
-      throw error;
+    } catch {
+      return results;
     }
   }
 

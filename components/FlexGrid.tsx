@@ -1,12 +1,12 @@
 "use client";
 import { ColumnType, DataTypeMap } from "@/types/column";
-import { FlexGrid as FlexGridBase } from "@mescius/wijmo.react.grid";
 import {
   Column,
   DataMap,
   ICellTemplateContext,
   FlexGrid as IFlexGrid,
   KeyAction,
+  SelectionMode,
 } from "@mescius/wijmo.grid";
 import { Button } from "./ui/button";
 import { FlexGridFilter } from "@mescius/wijmo.react.grid.filter";
@@ -21,10 +21,19 @@ import { renderToString } from "react-dom/server";
 import { AlertCircle } from "lucide-react";
 import { CellMaker } from "@mescius/wijmo.grid.cellmaker";
 import { useDialog } from "@/contexts/DialogContext";
+import dynamic from "next/dynamic";
+const FlexGridBase = dynamic(
+  () => import("@mescius/wijmo.react.grid").then((mod) => mod.FlexGrid),
+  {
+    ssr: false,
+  }
+);
 
 interface FlexGridProps<T> {
   gridKey: string;
+  isReadOnly?: boolean;
   columns: ColumnType[];
+  tabOrder?: number;
   collectionView: CollectionView<T> | undefined;
   originalItems: Partial<T & { id: string }>[];
   grid: IFlexGrid | undefined;
@@ -33,34 +42,42 @@ interface FlexGridProps<T> {
 
 export function FlexGrid<T>({
   columns,
+  isReadOnly,
   collectionView,
   originalItems,
   grid,
   setGrid,
   gridKey,
+  tabOrder = 0,
 }: FlexGridProps<T>) {
   const { showDialog } = useDialog();
+  const [gridHeight, setGridHeight] = useState<string>("70vh");
+
+  useEffect(() => {
+    import("@mescius/wijmo.cultures/wijmo.culture.ja");
+  }, []);
+
   useHotkeys("alt+;", () => addRow(), {
     enableOnFormTags: true,
     preventDefault: true,
   });
-  useHotkeys("alt+c", () => copyRow(), {
+  useHotkeys("alt+h", () => copyRow(), {
     enableOnFormTags: true,
     preventDefault: true,
   });
-  useHotkeys("alt+d", () => deleteRow(), {
+  useHotkeys("alt+j", () => deleteRow(), {
     enableOnFormTags: true,
     preventDefault: true,
   });
-  useHotkeys("alt+x", () => cancelRow(), {
+  useHotkeys("alt+k", () => cancelRow(), {
     enableOnFormTags: true,
     preventDefault: true,
   });
-  useHotkeys("alt+s", () => saveLayout(), {
+  useHotkeys("alt+l", () => saveLayout(), {
     enableOnFormTags: true,
     preventDefault: true,
   });
-  useHotkeys("alt+e", () => exportExcel(), {
+  useHotkeys("alt+i", () => exportExcel(), {
     enableOnFormTags: true,
     preventDefault: true,
   });
@@ -69,12 +86,26 @@ export function FlexGrid<T>({
 
   useEffect(() => {
     if (!grid) return;
-    setWjColumns(
-      columns.map((column) => ({
-        ...column,
-        dataType: DataTypeMap(column.dataType),
-      })) as unknown as Column[]
-    );
+
+    if (grid.hostElement) {
+      const observer = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const rect = entry.target.getBoundingClientRect();
+          const windowHeight = window.innerHeight;
+          const calculatedHeight = windowHeight - rect.top - 50;
+          setGridHeight(`${calculatedHeight}px`);
+        }
+      });
+
+      observer.observe(grid.hostElement);
+    }
+
+    if (grid.hostElement) {
+      const rect = grid.hostElement.getBoundingClientRect();
+      const windowHeight = window.innerHeight;
+      const calculatedHeight = windowHeight - rect.top - 20;
+      setGridHeight(`${calculatedHeight}px`);
+    }
 
     const initializeGrid = () => {
       if (!grid) return;
@@ -149,35 +180,52 @@ export function FlexGrid<T>({
       });
       grid.loadedRows.addHandler(() => {
         if (!grid.collectionView) return;
-        const loadLayout = async () => {
-          if (localStorage.getItem(`${gridKey}Layout`) && grid) {
-            await new Promise((resolve) => setTimeout(resolve, 100));
-            grid.columnLayout = localStorage.getItem(`${gridKey}Layout`) ?? "";
-            columns.forEach((column) => {
-              const gridColumn = grid.columns.find(
-                (c) => c.binding === column.binding
-              );
-              if (gridColumn) {
-                gridColumn.dataMap = column.dataMap as unknown as DataMap<
-                  string,
-                  string,
-                  string
-                >;
-                if (column.editor) {
-                  gridColumn.editor = column.editor as Control;
-                }
-              }
-            });
-          }
-        };
         loadLayout();
       });
       grid.refreshOnEdit = false;
       grid.keyActionTab = KeyAction.CycleEditable;
+      grid.selectionMode = SelectionMode.Row;
     };
 
     initializeGrid();
+    loadLayout();
   }, [grid]);
+
+  const loadLayout = async () => {
+    if (localStorage.getItem(`${gridKey}Layout`) && grid) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      grid.columnLayout = localStorage.getItem(`${gridKey}Layout`) ?? "";
+      columns.forEach((column) => {
+        const gridColumn = grid.columns.find(
+          (c) => c.binding === column.binding
+        );
+        if (gridColumn && grid.hostElement) {
+          if (!isReadOnly) {
+            gridColumn.cssClass = column.isReadOnly ? "read-only-cell" : "";
+          }
+          gridColumn.dataMap = column.dataMap as unknown as DataMap<
+            string,
+            string,
+            string
+          >;
+          if (column.editor) {
+            gridColumn.editor = column.editor as Control;
+          }
+        }
+      });
+    }
+  };
+
+  useEffect(() => {
+    setWjColumns(
+      columns.map((column) => ({
+        ...column,
+        dataType: DataTypeMap(column.dataType),
+        cssClass: isReadOnly || column.isReadOnly ? "read-only-cell" : "",
+        isRequired: false,
+      })) as unknown as Column[]
+    );
+  }, []);
 
   const addRow = async () => {
     const currentItem = grid?.collectionView.currentItem;
@@ -185,7 +233,7 @@ export function FlexGrid<T>({
     if (currentItem) {
       Object.keys(currentItem).forEach((key) => {
         if (currentItem[key] && typeof currentItem[key] === "object") {
-          newItem[key] = { ...currentItem[key] };
+          newItem[key] = {} as T;
         }
       });
     }
@@ -211,7 +259,6 @@ export function FlexGrid<T>({
         }
       });
 
-      // Remove calculated fields
       if (collectionView.calculatedFields) {
         const calculatedFields = Object.keys(
           collectionView.calculatedFields
@@ -235,21 +282,18 @@ export function FlexGrid<T>({
 
     grid.beginUpdate();
     try {
-      // 削除フラグの切り替え処理
       if (currentItem.operation === Operation.Delete) {
         currentItem.operation = null;
         grid.endUpdate();
         return;
       }
 
-      // 既存データの場合は論理削除
       if (currentItem.id) {
         currentItem.operation = Operation.Delete;
         grid.endUpdate();
         return;
       }
 
-      // 新規データの場合は物理削除
       const currentIndex = grid.collectionView.items.indexOf(currentItem);
       grid.editableCollectionView.remove(currentItem);
       if (currentIndex !== -1) {
@@ -308,45 +352,76 @@ export function FlexGrid<T>({
 
   return (
     <div>
-      <div className="mb-4 flex justify-between">
-        <div className="space-x-2">
-          <Button onClick={() => addRow()} variant="default">
+      <div className="mb-4">
+        <div className="flex flex-wrap gap-2">
+          <Button
+            onClick={() => addRow()}
+            variant="default"
+            className="whitespace-nowrap"
+            disabled={isReadOnly}
+          >
             <PlusCircle className="mr-2 h-4 w-4" />
             行追加(alt+;)
           </Button>
-          <Button onClick={() => copyRow()} variant="default">
+          <Button
+            onClick={() => copyRow()}
+            variant="default"
+            className="whitespace-nowrap"
+            disabled={isReadOnly}
+          >
             <Copy className="mr-2 h-4 w-4" />
-            行コピー(alt+c)
+            行コピー(alt+h)
           </Button>
-          <Button onClick={() => deleteRow()} variant="default">
+          <Button
+            onClick={() => deleteRow()}
+            variant="default"
+            className="whitespace-nowrap"
+            disabled={isReadOnly}
+          >
             <Trash2 className="mr-2 h-4 w-4" />
-            行削除(alt+d)
+            行削除(alt+j)
           </Button>
-          <Button onClick={() => cancelRow()} variant="default">
+          <Button
+            onClick={() => cancelRow()}
+            variant="default"
+            className="whitespace-nowrap"
+            disabled={isReadOnly}
+          >
             <X className="mr-2 h-4 w-4" />
-            取消(alt+x)
+            取消(alt+k)
           </Button>
-          <Button onClick={() => saveLayout()} variant="default">
+          <Button
+            onClick={() => saveLayout()}
+            variant="default"
+            className="whitespace-nowrap"
+          >
             <Save className="mr-2 h-4 w-4" />
-            レイアウト保存(alt+s)
+            レイアウト保存(alt+l)
           </Button>
-          <Button onClick={() => exportExcel()} variant="default">
+          <Button
+            onClick={() => exportExcel()}
+            variant="default"
+            className="whitespace-nowrap"
+          >
             <FileX className="mr-2 h-4 w-4" />
-            Excel出力(alt+e)
+            Excel出力(alt+i)
           </Button>
         </div>
       </div>
-      <FlexGridBase
-        itemsSource={collectionView}
-        columns={wjColumns}
-        autoGenerateColumns={false}
-        validateEdits={false}
-        imeEnabled={true}
-        initialized={setGrid}
-        style={{ height: "70vh" }}
-      >
-        <FlexGridFilter />
-      </FlexGridBase>
+      {wjColumns.length > 0 && (
+        <FlexGridBase
+          itemsSource={collectionView}
+          tabOrder={tabOrder}
+          columns={wjColumns}
+          autoGenerateColumns={false}
+          validateEdits={false}
+          imeEnabled={true}
+          initialized={setGrid}
+          style={{ height: gridHeight }}
+        >
+          <FlexGridFilter />
+        </FlexGridBase>
+      )}
     </div>
   );
 }

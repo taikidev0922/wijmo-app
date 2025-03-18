@@ -2,14 +2,15 @@
 
 import { createContext, useContext, useState, ReactNode } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 
 type DialogResult<T> = T | false;
 
@@ -71,37 +72,41 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   return (
     <DialogContext.Provider value={{ showDialog }}>
       {children}
-      <Dialog
+      <AlertDialog
         open={isOpen}
-        onOpenChange={(open) => {
+        onOpenChange={(open: boolean) => {
           setIsOpen(open);
           if (!open) {
             dialogState.resolve?.(false);
           }
         }}
       >
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>{dialogState.options.title}</DialogTitle>
-            <DialogDescription>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{dialogState.options.title}</AlertDialogTitle>
+            <AlertDialogDescription>
               {dialogState.options.description}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
             {dialogState.options.showCancelButton && (
-              <Button variant="outline" onClick={handleCancel}>
+              <AlertDialogCancel onClick={handleCancel}>
                 {dialogState.options.cancelText}
-              </Button>
+              </AlertDialogCancel>
             )}
-            <Button
-              variant={dialogState.options.variant}
+            <AlertDialogAction
+              className={
+                dialogState.options.variant === "destructive"
+                  ? "bg-destructive hover:bg-destructive/90"
+                  : ""
+              }
               onClick={handleConfirm}
             >
               {dialogState.options.confirmText}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DialogContext.Provider>
   );
 }

@@ -25,7 +25,7 @@ export default function Page() {
   const { showDialog } = useDialog();
   const [originalProducts, setOriginalProducts] = useState<Product[]>([]);
 
-  useHotkeys("alt+r", () => fetchProducts({ isConfirm: true }), {
+  useHotkeys("alt+y", () => fetchProducts({ isConfirm: true }), {
     enableOnFormTags: true,
     preventDefault: true,
   });
@@ -69,6 +69,9 @@ export default function Page() {
   ];
 
   const getError: IGetError<Product> = (item, prop) => {
+    if (!item.operation) {
+      return null;
+    }
     if (prop === "name" && !item.name) {
       return "商品名を入力してください";
     } else if (prop === "code" && !item.code) {
@@ -152,6 +155,9 @@ export default function Page() {
     if (results.length > 0) {
       toast.error("更新に失敗しました");
       grid?.beginUpdate();
+      grid?.collectionView.items.forEach((item) => {
+        item.error = undefined;
+      });
       results.forEach((result) => {
         const item = grid?.collectionView.items.find(
           (item) => item.uid === result.uid
@@ -169,63 +175,84 @@ export default function Page() {
   };
 
   return (
-    <div className="p-4 flex">
-      <div
-        className={`transition-all duration-300 ${
-          isGuideOpen ? "w-[calc(100%-300px)]" : "w-full"
-        }`}
-      >
-        <div className="mb-6 flex justify-between">
-          <h1 className="text-3xl font-bold tracking-tight">商品マスタ</h1>
-          <div className="space-x-2">
-            <Button
-              onClick={() => fetchProducts({ isConfirm: true })}
-              variant="default"
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              <RefreshCcw className="mr-2 h-4 w-4" />
-              再取得(alt+r)
-            </Button>
-            <Button
-              onClick={() => updateProducts()}
-              variant="default"
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              <Upload className="mr-2 h-4 w-4" />
-              一括更新(alt+u)
-            </Button>
-          </div>
-        </div>
-        <FlexGrid<Product>
-          gridKey="商品マスタ"
-          columns={columns}
-          collectionView={collectionView}
-          originalItems={originalProducts}
-          grid={grid}
-          setGrid={setGrid}
-        />
-      </div>
-
-      <div
-        className={`
-          fixed right-0 top-[57px] h-[calc(100%-57px)] bg-gray-50 border-l
-          transition-all duration-300 z-[10]
-          ${isGuideOpen ? "w-[400px]" : "w-[40px]"}
-        `}
-      >
-        <button
-          onClick={() => setIsGuideOpen(!isGuideOpen)}
-          className="absolute top-4 -left-5 bg-white border rounded-full p-2 shadow-md hover:bg-gray-50"
+    <div className="bg-gray-50">
+      <div className="p-6 flex">
+        <div
+          className={`transition-all duration-300 relative ${
+            isGuideOpen ? "w-[calc(100%-450px)]" : "w-full pr-[40px]"
+          }`}
         >
-          {isGuideOpen ? (
-            <ChevronRight className="h-5 w-5" />
-          ) : (
-            <ChevronLeft className="h-5 w-5" />
-          )}
-        </button>
-        <div className={`p-4 ${isGuideOpen ? "block" : "hidden"}`}>
-          <h2 className="text-xl font-bold mb-4 ml-4">操作ガイド</h2>
-          {/* ここに操作ガイドの内容を追加 */}
+          <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-6">
+            <div className="w-full sm:w-auto">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
+                商品マスタ
+              </h1>
+              <p className="mt-2 text-sm text-gray-600">
+                商品情報の一覧表示と編集ができます
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3 w-full sm:w-auto">
+              <Button
+                onClick={() => fetchProducts({ isConfirm: true })}
+                variant="outline"
+                className="flex-1 sm:flex-none border-gray-300 hover:bg-gray-50 text-gray-700 min-w-[140px]"
+              >
+                <RefreshCcw className="mr-2 h-4 w-4" />
+                <span className="whitespace-nowrap">再取得(alt+y)</span>
+              </Button>
+              <Button
+                onClick={() => updateProducts()}
+                variant="default"
+                className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 text-white shadow-sm min-w-[140px]"
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                <span className="whitespace-nowrap">一括更新(alt+u)</span>
+              </Button>
+            </div>
+          </div>
+          <FlexGrid<Product>
+            gridKey="商品マスタ"
+            columns={columns}
+            collectionView={collectionView}
+            originalItems={originalProducts}
+            grid={grid}
+            setGrid={setGrid}
+          />
+        </div>
+
+        <div
+          className={`
+            fixed right-0 top-16 h-[calc(100%-64px)] bg-white border-l shadow-lg
+            transition-all duration-300
+            ${isGuideOpen ? "w-[450px]" : "w-[40px]"}
+          `}
+          style={{ zIndex: 1 }}
+        >
+          <button
+            onClick={() => setIsGuideOpen(!isGuideOpen)}
+            className="absolute top-4 -left-5 bg-white border rounded-full p-2 shadow-md hover:bg-gray-50 transition-colors"
+            style={{ zIndex: 2 }}
+          >
+            {isGuideOpen ? (
+              <ChevronRight className="h-5 w-5 text-gray-600" />
+            ) : (
+              <ChevronLeft className="h-5 w-5 text-gray-600" />
+            )}
+          </button>
+          <div
+            className={`h-full flex flex-col ${
+              isGuideOpen ? "block" : "hidden"
+            }`}
+          >
+            <div className="border-b border-gray-200">
+              <h2 className="text-xl font-bold p-4 ml-4 text-gray-900">
+                操作ガイド
+              </h2>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              <div className="p-6">{/* ここに操作ガイドの内容を追加 */}</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

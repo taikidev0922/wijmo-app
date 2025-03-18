@@ -11,6 +11,7 @@ export type ColumnType = {
   cellTemplate?: ICellTemplateFunction;
   isReadOnly?: boolean;
   aggregate?: Aggregate;
+  format?: string;
 };
 
 export type DataType = "string" | "number" | "date" | "boolean";

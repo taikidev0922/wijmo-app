@@ -14,7 +14,7 @@ export function OperationGuide() {
       title: "データの再取得",
       description:
         "ブラウザ内のローカルDBから最新のデータを取得します。編集中のデータがある場合は確認ダイアログが表示されます。",
-      shortcut: "Alt + R",
+      shortcut: "Alt + Y",
     },
     {
       title: "一括更新",
@@ -22,6 +22,37 @@ export function OperationGuide() {
         "編集したデータをブラウザ内のローカルDBに保存します。入力エラーがある場合は保存できません。対象となるデータは操作区分として[U I D]が設定されているデータです。\nU:更新 I:追加 D:削除",
       shortcut: "Alt + U",
       image: "/iud.png",
+    },
+    {
+      title: "行追加",
+      description: "新しい行を追加します。",
+      shortcut: "Alt + ;",
+    },
+    {
+      title: "行コピー",
+      description: "選択中の行をコピーして新しい行を追加します。",
+      shortcut: "Alt + H",
+    },
+    {
+      title: "行削除",
+      description:
+        "選択中の行を削除します。既存データの場合は論理削除、新規データの場合は物理削除となります。",
+      shortcut: "Alt + J",
+    },
+    {
+      title: "取消",
+      description: "選択中の行の編集内容を取り消します。",
+      shortcut: "Alt + K",
+    },
+    {
+      title: "レイアウト保存",
+      description: "現在の列の並び順や幅などのレイアウトを保存します。",
+      shortcut: "Alt + L",
+    },
+    {
+      title: "Excel出力",
+      description: "現在の表示内容をExcelファイルとして出力します。",
+      shortcut: "Alt + I",
     },
     {
       title: "データの編集",
@@ -32,7 +63,7 @@ export function OperationGuide() {
     {
       title: "編集の確定",
       description:
-        "EnterまたはTabキーで編集を確定します。\nEnterは下のセル、Tabは次の編集可能なセルに移動します。",
+        "編集内容の確定と同時にセル移動を行います。\n・Enterキー：編集を確定し、下のセルに移動します。\n・Tabキー：編集を確定し、右隣の編集可能なセルに移動します。編集可能なセルが見つかるまで右方向に探索し、行末まで到達した場合は次の行の先頭から探索します。",
       shortcut: "Enter, Tab",
     },
     {
@@ -42,13 +73,20 @@ export function OperationGuide() {
     },
     {
       title: "セル移動",
-      description: "矢印キーでセル間を移動できます。",
-      shortcut: "↑↓←→",
+      description:
+        "以下のキーでセル間を移動できます：\n・↑（上矢印）：上のセルに移動\n・↓（下矢印）：下のセルに移動\n・←（左矢印）：左のセルに移動\n・→（右矢印）：右のセルに移動\n・Tab：次の編集可能なセルに移動\n・Enter：下のセルに移動",
+      shortcut: "↑↓←→, Tab, Enter",
+    },
+    {
+      title: "バリデーションエラー",
+      description:
+        "入力値の検証は一括更新時に行われます：\n・必須項目チェック：違反している場合は対象セルに赤枠が表示されます。\n・文字数制限などの入力規則：違反している場合は対象セルに赤枠が表示されます。\n\nエラーの解消方法：\n・適切な値を入力して確定することで、エラー表示（赤枠）は自動的に消えます。\n・全てのエラーが解消されるまで一括更新は実行できません。",
+      image: "/validation-error1.png",
     },
     {
       title: "フィルター",
       description: "フィルターを適用してデータを絞り込みます。",
-      shortcut: "alt+↓",
+      shortcut: "Alt + ↓",
     },
   ];
 

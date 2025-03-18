@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import { DialogProvider } from "@/contexts/DialogContext";
+import { WijmoDialogProvider } from "@/contexts/WijmoDialogContext";
 import AppBar from "@/components/AppBar";
 import "@mescius/wijmo.styles/wijmo.css";
 
@@ -29,14 +30,16 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <DialogProvider>
-          <AppBar />
-          <div className="container mx-auto">
-            <main className="p-6">{children}</main>
-          </div>
-          <Toaster />
+          <WijmoDialogProvider>
+            <AppBar />
+            <div className="mx-auto pt-16">
+              <main>{children}</main>
+            </div>
+            <Toaster />
+          </WijmoDialogProvider>
         </DialogProvider>
       </body>
     </html>

@@ -2,13 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
-.wj-cell.wj-state-multi-selected {
+/* .wj-cell.wj-state-multi-selected {
   background-color: transparent !important;
   color: black !important;
 }
 .wj-alt.wj-state-multi-selected {
   background-color: #f7f7f7 !important;
-}
+} */
 
 @layer base {
   :root {
@@ -79,4 +79,31 @@
   color: #ef4444 !important;
   stroke: #f7f7f7 !important;
   fill: #ef4444 !important;
+}
+
+.wj-cell:not(.wj-header, .wj-state-active, .wj-state-multi-selected) {
+  background-color: #f0fff4 !important;
+}
+.wj-alt.wj-cell:not(.wj-header, .wj-state-active, .wj-state-multi-selected) {
+  background-color: #e6ffed !important;
+}
+.wj-state-multi-selected:not(.read-only-cell) {
+  background-color: #a4c8d0 !important;
+}
+
+.read-only-cell:not(.wj-state-active, .wj-state-multi-selected) {
+  background-color: #fff !important;
+}
+.read-only-cell.wj-alt:not(.wj-state-active, .wj-state-multi-selected) {
+  background-color: #f7f7f7 !important;
+}
+
+.wj-state-focused.wj-flexgrid:not(.wijmo-dialog) {
+  outline: 3px solid rgb(37 99 235) !important;
+}
+.wj-state-focused.wj-combobox:not(.wijmo-dialog) {
+  outline: 3px solid rgb(37 99 235) !important;
+}
+.wj-state-focused.wj-inputdate:not(.wijmo-dialog) {
+  outline: 3px solid rgb(37 99 235) !important;
 }

@@ -1,10 +1,12 @@
 import { Client } from "@/domains/client";
 import { OrderDetail } from "@/domains/orderDetail";
 import { Order as OrderModel } from "@/models/order";
-
+import { Operation } from "@/enums/Operation";
 export class Order {
   constructor(
     public readonly id: string | undefined,
+    public readonly uid: number | undefined,
+    public readonly operation: Operation | undefined,
     public readonly orderNo: string,
     public readonly orderDate: Date,
     public readonly clientId: string,
@@ -17,6 +19,8 @@ export class Order {
   static create(order: Order) {
     return new Order(
       order.id,
+      order.uid,
+      order.operation,
       order.orderNo,
       order.orderDate,
       order.clientId,
