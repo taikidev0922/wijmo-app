@@ -25,10 +25,9 @@ import {
   YearlyOrderAmount,
   TimeUnit,
 } from "@/application/dashboardService";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { resetDatabase, generateDummyData } from "@/infrastructure/db";
-import { useDialog } from "@/contexts/DialogContext";
 
 const COLORS = [
   "#0088FE",
@@ -57,8 +56,8 @@ export default function Home() {
   const [isGuideOpen, setIsGuideOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [isTwoColumns, setIsTwoColumns] = useState(false);
+  const [showInitDialog, setShowInitDialog] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { showDialog } = useDialog();
 
   const handleResetDB = async () => {
     await resetDatabase();
@@ -98,15 +97,7 @@ export default function Home() {
         businessTypeData.length === 0 &&
         lowStockData.length === 0
       ) {
-        const confirmed = await showDialog({
-          title: "データの初期化",
-          description:
-            "ダッシュボードを表示するには、まずダミーデータを作成する必要があります。サンプルデータを生成しますか？",
-          confirmText: "ダミーデータを作成",
-        });
-        if (confirmed) {
-          await handleCreateDummyData();
-        }
+        setShowInitDialog(true);
       }
     } finally {
       setIsLoading(false);
@@ -136,6 +127,40 @@ export default function Home() {
 
   return (
     <div className="bg-gray-50">
+      {showInitDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">データの初期化</h2>
+              <button
+                onClick={() => setShowInitDialog(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <p className="text-gray-600 mb-6">
+              ダッシュボードを表示するには、まずダミーデータを作成する必要があります。サンプルデータを生成しますか？
+            </p>
+            <div className="flex justify-end space-x-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowInitDialog(false)}
+              >
+                キャンセル
+              </Button>
+              <Button
+                onClick={async () => {
+                  setShowInitDialog(false);
+                  await handleCreateDummyData();
+                }}
+              >
+                ダミーデータを作成
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="p-6">
         <div
           ref={containerRef}
