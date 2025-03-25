@@ -346,6 +346,37 @@ export default function Home() {
             </div>
             <div className="flex-1 overflow-y-auto">
               <div className="p-6">
+                <h3 className="font-semibold text-gray-900 mb-2">はじめに</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  このシステムを使用するには、まず以下の手順でデータを準備してください：
+                </p>
+                <div className="mb-6">
+                  <h4 className="font-medium text-gray-800 mb-2">
+                    データの準備方法
+                  </h4>
+                  <ul className="list-disc list-inside text-sm text-gray-600 space-y-2 mb-4">
+                    <li>
+                      すぐに動作確認したい場合は「DBダミーデータ作成」ボタンをクリックしてサンプルデータを作成できます
+                    </li>
+                    <li>
+                      ゼロからデータを作成したい場合：
+                      <ol className="list-decimal list-inside ml-4 mt-1 space-y-1">
+                        <li>「DBを空にする」ボタンでデータベースを初期化</li>
+                        <li>上部メニューの「得意先マスタ」で得意先を登録</li>
+                        <li>「商品マスタ」で商品を登録</li>
+                        <li>「受注登録」で受注データを登録</li>
+                      </ol>
+                    </li>
+                  </ul>
+                </div>
+
+                <h3 className="font-semibold text-gray-900 mb-2">
+                  画面構成について
+                </h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  上部メニューバーから各機能画面に移動できます。各画面には操作ガイドが表示されますので、ガイドを参考に操作を進めてください。
+                </p>
+
                 <h3 className="font-semibold text-gray-900 mb-2">
                   ダッシュボードの説明
                 </h3>
@@ -364,9 +395,6 @@ export default function Home() {
                     在庫数の少ない商品TOP5：在庫が少ない商品を確認できます
                   </li>
                 </ul>
-                <p className="text-sm text-gray-600 mt-4">
-                  データは「データ更新」ボタンをクリックすることで最新の情報に更新できます。
-                </p>
               </div>
             </div>
           </div>

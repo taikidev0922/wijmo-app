@@ -12,6 +12,7 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { InvoiceService } from "@/application/invoiceService";
 import { FlexGrid } from "@/components/FlexGrid";
 import { ColumnType } from "@/types/column";
+import { OperationGuide } from "@/components/order-list/OperationGuide";
 
 export default function OrderListPage() {
   const orderAppService = new OrderAppService(new OrderRepository());
@@ -194,7 +195,9 @@ export default function OrderListPage() {
               </h2>
             </div>
             <div className="flex-1 overflow-y-auto">
-              <div className="p-6">{/* ここに操作ガイドの内容を追加 */}</div>
+              <div className="p-6">
+                <OperationGuide />
+              </div>
             </div>
           </div>
         </div>

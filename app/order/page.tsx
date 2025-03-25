@@ -33,6 +33,7 @@ import { ProductSearchDialog } from "@/components/product/ProductSearchDialog";
 import { ClientSearchDialog } from "@/components/client/ClientSearchDialog";
 import { useHotkeys } from "react-hotkeys-hook";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { OperationGuide } from "@/components/order/OperationGuide";
 
 export default function Order() {
   const { showDialog } = useDialog();
@@ -619,7 +620,9 @@ export default function Order() {
               </h2>
             </div>
             <div className="flex-1 overflow-y-auto">
-              <div className="p-6">{/* ここに操作ガイドの内容を追加 */}</div>
+              <div className="p-6">
+                <OperationGuide />
+              </div>
             </div>
           </div>
         </div>

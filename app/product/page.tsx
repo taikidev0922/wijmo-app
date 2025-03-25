@@ -15,6 +15,7 @@ import { Product } from "@/domains/product";
 import { FlexGrid } from "@/components/FlexGrid";
 import { categorys } from "@/datas/categorys";
 import { ColumnType } from "@/types/column";
+import { OperationGuide } from "@/components/client/OperationGuide";
 
 export default function Page() {
   const productAppService = new ProductAppService(new ProductRepository());
@@ -250,7 +251,9 @@ export default function Page() {
               </h2>
             </div>
             <div className="flex-1 overflow-y-auto">
-              <div className="p-6">{/* ここに操作ガイドの内容を追加 */}</div>
+              <div className="p-6">
+                <OperationGuide />
+              </div>
             </div>
           </div>
         </div>
